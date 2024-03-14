@@ -41,7 +41,6 @@
 
   </div>
 
-  <!-- <script type="text/javascript" src="./output/graph -309875504.json"></script> -->
   <script>
     const Graph = ForceGraph3D()
       (document.getElementById('3d-graph'));
@@ -60,18 +59,6 @@
       reader.onload = function (e) {
         const data = JSON.parse(e.target.result);
         gData = data;
-
-
-
-
-        // http://localhost:8090/output/graph%20-309875504.json
-        // fetch('./output/graph%20-309875504.json')
-        //   .then(res => res.json())
-        //   .then(data => {
-        //     gData = data;
-        //     console.log(gData);
-        //   })
-        //   .then(() => {
 
         function searchNodeIdByName(name) {
           for (let i = 0; i < gData.nodes.length; i++) {
@@ -144,7 +131,8 @@
 
 
             // no state change
-            if ((!node && !highlightNodes.size) || (node && hoverNode === node)) return;
+            if ((!node && !highlightNodes.size)
+              || (node && hoverNode === node)) return;
 
             highlightNodes.clear();
             highlightLinks.clear();
@@ -173,10 +161,13 @@
             updateHighlight();
           })
           .onNodeClick((node, event) => {
-            if (event.ctrlKey || event.shiftKey || event.altKey) { // multi-selection
-              selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node);
+            if (event.ctrlKey || event.shiftKey || event.altKey) {
+              // multi-selection
+              selectedNodes.has(node)
+                ? selectedNodes.delete(node) : selectedNodes.add(node);
             } else {
-              const untoggle = selectedNodes.has(node) && selectedNodes.size === 1;
+              const untoggle = selectedNodes.has(node)
+                && selectedNodes.size === 1;
               selectedNodes.clear();
               !untoggle && selectedNodes.add(node);
 
@@ -184,18 +175,23 @@
               let oldCamPos = Graph.cameraPosition();
 
               const distance = 500;
-              const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+              const distRatio = 1 + distance
+                / Math.hypot(node.x, node.y, node.z);
 
               const newPos = node.x || node.y || node.z
-                ? { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }
-                : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
+                ? {
+                  x: node.x * distRatio,
+                  y: node.y * distRatio,
+                  z: node.z * distRatio
+                }
+                // special case if node is in (0,0,0)
+                : { x: 0, y: 0, z: distance };
 
               Graph.cameraPosition(
                 oldCamPos, // new position
                 node, // lookAt ({ x, y, z })
                 500  // ms transition duration
               );
-              // Graph.nodeColor(Graph.nodeColor()); // update color of selected nodes
             }
           })
           .forceEngine('d3');
@@ -213,9 +209,9 @@
             .linkWidth(Graph.linkWidth())
             .linkDirectionalParticles(Graph.linkDirectionalParticles());
 
-          // New feature: highlight all links between selected nodes
           gData.links.forEach(link => {
-            if (selectedNodes.has(link.source) && selectedNodes.has(link.target)) {
+            if (selectedNodes.has(link.source)
+              && selectedNodes.has(link.target)) {
               highlightLinks.add(link);
             }
           });
@@ -224,66 +220,6 @@
       reader.readAsText(file);
 
     });
-    // });
-
-    // read local json file './output/graph -309875504.json'
-    // let gData;
-    // fetch('./output/graph -309875504.json')
-    //   .then(res => res.json())
-    //   .then(data => {
-    //     gData = data;
-    //     console.log(gData);
-    //   });
-
-    // function readTextFile(file, callback) {
-    //   var rawFile = new XMLHttpRequest();
-    //   rawFile.overrideMimeType("application/json");
-    //   rawFile.open("GET", file, true);
-    //   rawFile.onreadystatechange = function () {
-    //     if (rawFile.readyState === 4 && rawFile.status == "200") {
-    //       callback(rawFile.responseText);
-    //     }
-    //   }
-    //   rawFile.send(null);
-    // }
-
-    // let gData;
-    // readTextFile('./output/graph -309875504.json', function (text) {
-    //   gData = JSON.parse(text);
-    //   console.log(gData);
-    // });
-
-
-
-    // const N = 80;
-    // const agData = {
-    //   nodes: [...Array(N).keys()].map(i => ({ id: i })),
-    //   links: [...Array(N).keys()]
-    //     .filter(id => id)
-    //     .map(id => ({
-    //       source: id,
-    //       target: Math.round(Math.random() * (id - 1))
-    //     }))
-    // };
-
-    // let gData;
-    // async function fetchData() {
-    //   const response = await fetch('./output/graph -309875504.json');
-    //   const data = await response.json();
-    //   console.log(data);
-    //   gData = data;
-
-
-    // }
-
-    // fetchData().catch((error) => console.error('Error:', error));
-
-
-
-    // pull out data from Graph
-    // let gData = Graph.graphData();
-
-
 
   </script>
 </body>
