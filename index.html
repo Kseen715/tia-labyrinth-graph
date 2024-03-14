@@ -1,0 +1,289 @@
+<head>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    /* make id header on top of other stuff, transparent background */
+    #header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: transparent;
+      color: antiquewhite;
+      z-index: 100;
+    }
+
+    #fileInput {
+      width: 100%;
+    }
+  </style>
+  <meta charset=utf-8>
+  <script src="//unpkg.com/3d-force-graph"></script>
+  <!--<script src="../../dist/3d-force-graph.js"></script>-->
+</head>
+
+<body>
+
+  <div id="header">
+    <a id="txt">
+      Управление: <br />
+      Ctrl+ЛКМ по узлу - выделение узла. Выделенные узлы будут соединены<br />
+      ЛКМ по узлу - перемещение камеры к узлу<br />
+      Ось ЛКМ - вращение<br />
+      Ось ПКМ - панорамирование<br />
+    </a>
+    <!-- file choose -->
+    <input type="file" id="fileInput" />
+  </div>
+  <div id="3d-graph">
+
+  </div>
+
+  <!-- <script type="text/javascript" src="./output/graph -309875504.json"></script> -->
+  <script>
+    const Graph = ForceGraph3D()
+      (document.getElementById('3d-graph'));
+    const highlightNodes = new Set();
+    const highlightLinks = new Set();
+    let hoverNode = null;
+    let gData;
+    let selectedNodes = new Set();
+    file = document.getElementById('fileInput');
+
+
+    // on file input change
+    file.addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = JSON.parse(e.target.result);
+        gData = data;
+
+
+
+
+        // http://localhost:8090/output/graph%20-309875504.json
+        // fetch('./output/graph%20-309875504.json')
+        //   .then(res => res.json())
+        //   .then(data => {
+        //     gData = data;
+        //     console.log(gData);
+        //   })
+        //   .then(() => {
+
+        function searchNodeIdByName(name) {
+          for (let i = 0; i < gData.nodes.length; i++) {
+            if (gData.nodes[i].id === name) {
+              return i;
+            }
+          }
+          return -1;
+        }
+
+        gData.links.forEach(link => {
+          let a = gData.nodes[searchNodeIdByName(link.source)];
+          let b = gData.nodes[searchNodeIdByName(link.target)];
+
+          !a.neighbors && (a.neighbors = []);
+          !b.neighbors && (b.neighbors = []);
+          a.neighbors.push(b);
+          b.neighbors.push(a);
+          !a.links && (a.links = []);
+          !b.links && (b.links = []);
+          a.links.push(link);
+          b.links.push(link);
+
+        });
+
+
+        Graph
+          .graphData(gData)
+          .linkOpacity(0.1)
+          .nodeColor(node => {
+            if (selectedNodes.has(node)) {
+              if (node.val === 2) {
+                return 'rgba(255,255,255,1)';
+              } else if (node.val === 3) {
+                return 'rgba(255,0,0,1)';
+              } else {
+                return 'rgb(255,255,90,1)';
+              }
+            }
+            if (highlightNodes.has(node)) {
+
+              if (node === hoverNode) {
+                return 'rgb(90,255,90,1)';
+              } else {
+                if (node.val === 2) {
+                  return 'rgba(255,255,255,1)';
+                } else if (node.val === 3) {
+                  return 'rgba(255,0,0,1)';
+                } else {
+                  return 'rgba(255,160,0,0.8)';
+                }
+              }
+            }
+            if (node.val === 2) {
+              return 'rgba(150,150,150,1)';
+            } else if (node.val === 3) {
+              return 'rgba(150,0,0,1)';
+            } else {
+              return 'rgba(0,255,255,0.6)';
+            }
+          })
+          .linkWidth(link => {
+            return (highlightLinks.has(link) ? 4 : 1)
+          })
+          .linkDirectionalParticles(link => highlightLinks.has(link) ? 20 : 0)
+          .linkDirectionalParticleWidth(4)
+          .linkDirectionalParticleColor(NaN => 'rgba(255,255,150,0.5)')
+          .linkDirectionalParticleSpeed(0.0025)
+          .onNodeHover(node => {
+
+
+            // no state change
+            if ((!node && !highlightNodes.size) || (node && hoverNode === node)) return;
+
+            highlightNodes.clear();
+            highlightLinks.clear();
+            if (node) {
+              highlightNodes.add(node);
+              !node.neighbors && (node.neighbors = []);
+              !node.links && (node.links = []);
+              node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
+              node.links.forEach(link => highlightLinks.add(link));
+            }
+
+            hoverNode = node || null;
+
+            updateHighlight();
+          })
+          .onLinkHover(link => {
+            highlightNodes.clear();
+            highlightLinks.clear();
+
+            if (link) {
+              highlightLinks.add(link);
+              highlightNodes.add(link.source);
+              highlightNodes.add(link.target);
+            }
+
+            updateHighlight();
+          })
+          .onNodeClick((node, event) => {
+            if (event.ctrlKey || event.shiftKey || event.altKey) { // multi-selection
+              selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node);
+            } else {
+              const untoggle = selectedNodes.has(node) && selectedNodes.size === 1;
+              selectedNodes.clear();
+              !untoggle && selectedNodes.add(node);
+
+              // Aim at node from outside it
+              let oldCamPos = Graph.cameraPosition();
+
+              const distance = 500;
+              const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+
+              const newPos = node.x || node.y || node.z
+                ? { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }
+                : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
+
+              Graph.cameraPosition(
+                oldCamPos, // new position
+                node, // lookAt ({ x, y, z })
+                500  // ms transition duration
+              );
+              // Graph.nodeColor(Graph.nodeColor()); // update color of selected nodes
+            }
+          })
+          .forceEngine('d3');
+
+        const linkForce = Graph
+          .d3Force('link')
+          .distance(100);
+
+
+        function updateHighlight() {
+          // trigger update of highlighted objects in scene
+          Graph
+            .nodeColor(Graph.nodeColor())
+            .linkOpacity(Graph.linkOpacity())
+            .linkWidth(Graph.linkWidth())
+            .linkDirectionalParticles(Graph.linkDirectionalParticles());
+
+          // New feature: highlight all links between selected nodes
+          gData.links.forEach(link => {
+            if (selectedNodes.has(link.source) && selectedNodes.has(link.target)) {
+              highlightLinks.add(link);
+            }
+          });
+        }
+      };
+      reader.readAsText(file);
+
+    });
+    // });
+
+    // read local json file './output/graph -309875504.json'
+    // let gData;
+    // fetch('./output/graph -309875504.json')
+    //   .then(res => res.json())
+    //   .then(data => {
+    //     gData = data;
+    //     console.log(gData);
+    //   });
+
+    // function readTextFile(file, callback) {
+    //   var rawFile = new XMLHttpRequest();
+    //   rawFile.overrideMimeType("application/json");
+    //   rawFile.open("GET", file, true);
+    //   rawFile.onreadystatechange = function () {
+    //     if (rawFile.readyState === 4 && rawFile.status == "200") {
+    //       callback(rawFile.responseText);
+    //     }
+    //   }
+    //   rawFile.send(null);
+    // }
+
+    // let gData;
+    // readTextFile('./output/graph -309875504.json', function (text) {
+    //   gData = JSON.parse(text);
+    //   console.log(gData);
+    // });
+
+
+
+    // const N = 80;
+    // const agData = {
+    //   nodes: [...Array(N).keys()].map(i => ({ id: i })),
+    //   links: [...Array(N).keys()]
+    //     .filter(id => id)
+    //     .map(id => ({
+    //       source: id,
+    //       target: Math.round(Math.random() * (id - 1))
+    //     }))
+    // };
+
+    // let gData;
+    // async function fetchData() {
+    //   const response = await fetch('./output/graph -309875504.json');
+    //   const data = await response.json();
+    //   console.log(data);
+    //   gData = data;
+
+
+    // }
+
+    // fetchData().catch((error) => console.error('Error:', error));
+
+
+
+    // pull out data from Graph
+    // let gData = Graph.graphData();
+
+
+
+  </script>
+</body>
