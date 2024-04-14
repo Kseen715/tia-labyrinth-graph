@@ -1,10 +1,17 @@
 ## Использование
 
-Для использование приложения его необходимо запустить http-сервером, например через Python:
-``` bash
-python3 -m http.server 8080
-```
-После чего необходимо перейти на [localhost:8080](http://localhost:8080) и выбрать набор данных.
+Приложение размещено на [kseen715.github.io](https://kseen715.github.io/tia-labyrinth-graph/). 
+
+<details><summary><i>Локальное развертывание приложения</i></summary>
+  
+  Для использование приложения его необходимо запустить http-сервером, например через Python:
+  ``` bash
+  python3 -m http.server 8080
+  ```
+  В данном случае приложение будет развернуто на [localhost:8080](http://localhost:8080).
+</details>
+
+Перейдите по ссылке и выберите набор данных.
 
 <img src=https://i.imgur.com/ZJnnVib.png>
 
