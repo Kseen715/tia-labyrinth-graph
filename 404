@@ -1,0 +1,9 @@
+<html>
+    <script src="jquery.js"></script>
+    <script>
+    $(function(){
+      $("#includedContent").load("index.html");
+    });
+    </script>
+    <div id="includedContent"></div>
+</html>
